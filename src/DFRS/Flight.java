@@ -13,8 +13,8 @@ import java.util.List;
  */
 public class Flight implements Serializable{
 	private static final long serialVersionUID = 1L;
-	private int firstClass = 1; // maximum seat capacity for first class
-	private int businessClass = 2; // maximum seat capacity for business class
+	private int firstClass = 3; // maximum seat capacity for first class
+	private int businessClass = 3; // maximum seat capacity for business class
 	private int economyClass = 3; // maximum seat capacity for economy class
 	private String departure = "";
 	private String destination = "";

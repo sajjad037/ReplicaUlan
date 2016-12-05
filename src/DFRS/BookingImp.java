@@ -143,7 +143,7 @@ public class BookingImp extends BookingPOA {
 		// TODO Auto-generated method stub
 		
 		
-		int operation = fieldName.charAt(0);
+		char operation = fieldName.charAt(0);
 //		String operation = fieldName;
 		String[] arr1 = fieldName.split(":");
 		String[] arr2 = newValue.split(":");
@@ -167,11 +167,11 @@ public class BookingImp extends BookingPOA {
 			}
 		}else if(operation=='1'){
 //		}else if(operation.equalsIgnoreCase("editFlight")){	
-			return Integer.toString(bookingService.editFlight(recordID, arr1[1], arr1[2], arr1[3], arr2[0], arr2[1], arr2[2], arr2[3], arr2[4]));
+			return bookingService.editFlight(recordID, arr1[1], arr1[2], arr1[3], arr2[0], arr2[1], arr2[2], arr2[3], arr2[4]);
 //			return Integer.toString(bookingService.editFlight(recordID, arr2[1], arr2[2], arr2[3], arr2[0], arr2[1], arr2[2], arr2[3], arr2[4]));
 		}else if(operation=='2'){
 //		}else if(operation.equalsIgnoreCase("deleteFlight")){
-			return Integer.toString(bookingService.deleteFlight(recordID, arr1[1], arr1[2], arr1[3]));
+			return bookingService.deleteFlight(recordID, arr1[1], arr1[2], arr1[3]);
 //			return Integer.toString(bookingService.deleteFlight(recordID, arr2[1], arr2[2], arr2[3]));
 		}else if(operation=='3'){
 //		}else if(operation.equalsIgnoreCase("showAllFlights")){

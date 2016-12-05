@@ -169,7 +169,7 @@ public class ReplicaListner implements Runnable {
 						
 				//		res = obj.editFlightRecord(udpMessage.getParamters().get("recordID"),
 				//		udpMessage.getParamters().get("fieldName"), udpMessage.getParamters().get("newValue"));
-						
+						System.out.println(res);
 						replyMessage.setReplyMsg(res);
 						break;
 

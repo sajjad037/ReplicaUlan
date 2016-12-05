@@ -107,7 +107,7 @@ public class BookingImpService {
 	 * @param new_e new maximum capacity limit for flight's economy class
 	 * @return 1 if successful, 0 if failed
 	 */
-	public int editFlight(String recordID, String dest, String date, String time, String new_date, String new_time, String new_f, String new_b, String new_e){
+	public String editFlight(String recordID, String dest, String date, String time, String new_date, String new_time, String new_f, String new_b, String new_e){
 		if(hmapFlights.get(dest + date) != null){
 			//find value in hash map using key which is composition of destination and date of flight
 			List<Flight> temp = hmapFlights.get(dest + date);
@@ -139,12 +139,12 @@ public class BookingImpService {
 						temp.remove(k);		
 					}
 				}
-				return 1;
+				return "true";
 			}else{
-				return 0;
+				return "false";
 			}
 		}else{
-			return 0;
+			return "false";
 		}
 	}
 	
@@ -170,7 +170,7 @@ public class BookingImpService {
 	 * @param time flight time
 	 * @return 1 if successful, 0 if failed
 	 */
-	public int deleteFlight(String recordID, String dest, String date, String time){
+	public String deleteFlight(String recordID, String dest, String date, String time){
 		if(hmapFlights.get(dest + date) != null){
 			//find value in hash map using key which is composition of destination and date of flight
 			List<Flight> temp = hmapFlights.get(dest + date);
@@ -195,12 +195,12 @@ public class BookingImpService {
 						hmapFlights.remove(dest+date);
 					}
 				}
-				return 1;
+				return "true";
 			}else{
-				return 0;
+				return "false";
 			}
 		} 
-		return 0;
+		return "false";
 	}
 	
 	/**
