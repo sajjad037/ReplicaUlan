@@ -16,6 +16,7 @@ public class BookingImp extends BookingPOA {
 	private ORB orb;
 	private BookingImpService bookingService;
 	
+	
 	/**
 	 * Constructor
 	 * @param new_bis reference to booking service object
@@ -35,7 +36,7 @@ public class BookingImp extends BookingPOA {
 	/**
 	 * This method shut downs the orb
 	 */
-	public void shutdown(){
+	public void shutDownServer(){
 		orb.shutdown(false);
 	}
 	
@@ -43,7 +44,7 @@ public class BookingImp extends BookingPOA {
 	public String bookFlight(String firstName, String lastName, String address, String phone, String destination, String date, String classFlight) {
 		// TODO Auto-generated method stub
 		//find value by key in hash map
-		System.err.println("I am HERE!");
+		
 		List<Flight> temp = bookingService.getHashMapFlight().get(destination + date);
 		if (temp != null) {
 			synchronized(temp){
@@ -52,28 +53,28 @@ public class BookingImp extends BookingPOA {
 					if (temp.get(i).getFirstClassOccupied() < temp.get(i).getFirstClass()) {
 						long id = bookingService.addPassengerRecord(firstName, lastName, address, phone, destination, classFlight, date);
 						temp.get(i).insertRecord(0, Long.toString(id));
-						return temp.get(i).getTimeFlight()+Long.toString(id);
+						return "true:"+Long.toString(id);
 					}
 				} else if (classFlight.equalsIgnoreCase("business")) {
 					if (temp.get(i).getBusinessClassOccupied() < temp.get(i).getBusinessClass()) {
 						long id = bookingService.addPassengerRecord(firstName, lastName, address, phone, destination, classFlight, date);
 						temp.get(i).insertRecord(1, Long.toString(id));
-						return temp.get(i).getTimeFlight()+Long.toString(id);
+						return "true:"+Long.toString(id);
 					}
 				} else if (classFlight.equalsIgnoreCase("economy")) {
 					if (temp.get(i).getEconomyClassOccupied() < temp.get(i).getEconomyClass()) {
 						long id = bookingService.addPassengerRecord(firstName, lastName, address, phone, destination, classFlight, date);
 						temp.get(i).insertRecord(2, Long.toString(id));
-						return temp.get(i).getTimeFlight()+Long.toString(id);
+						return "true:"+Long.toString(id);
 					}
 				}
 			}
 			bookingService.getLogger().info("BOOKING REQUEST FAILED: NO SPACE! client: "+firstName+" "+lastName+" desination: "+destination+" date:"+date+" flightclass: "+classFlight);
-			return "nospace";
+			return "false:1";//"nospace";
 			}
 		} else {
 			bookingService.getLogger().info("BOOKING REQUEST FAILED: NO FLIGHT ON THIS DATE! client: "+firstName+" "+lastName+" desination: "+destination+" date:"+date+" flightclass: "+classFlight);
-			return "noflight";
+			return "false:0";//"noflight";
 		}
 		
 		
@@ -83,7 +84,8 @@ public class BookingImp extends BookingPOA {
 	public String getBookedFlightCount(String recordType) {
 		// TODO Auto-generated method stub
 		try {
-			String[] arr2 = recordType.split(";");
+			String[] arr2 = recordType.split(":");
+			//arr2[0] server
 			String managerID = arr2[0];
 			recordType = arr2[1];
 			DatagramSocket socketUDPC = null;
@@ -139,29 +141,52 @@ public class BookingImp extends BookingPOA {
 	@Override
 	public String editFlightRecord(String recordID, String fieldName, String newValue) {
 		// TODO Auto-generated method stub
+		
+		
 		int operation = fieldName.charAt(0);
-		String[] arr1 = fieldName.split(";");
-		String[] arr2 = newValue.split(";");
+//		String operation = fieldName;
+		String[] arr1 = fieldName.split(":");
+		String[] arr2 = newValue.split(":");
+//		String[] arr2 = newValue.split(":");
+//		String newFclass = arr2[0];
+//		String newBclass = arr2[1];
+//		String newEclass = arr2[2];
+//		String newDate = arr2[3];
+//		String newTime = arr2[4];
+//		String newDestination =arr2[5]; 
+//		
 		if(operation=='0'){
+//		if(operation.equalsIgnoreCase("createFlight")){	
 			if(bookingService.createNewFlight(recordID, arr1[1], arr1[2], arr1[3])){
-				return "1";
+//			if(bookingService.createNewFlight(recordID, newDestination, newDate, newTime)){
+				return "true";
 			}else{
 				bookingService.getLogger().info("FAILED TO CREATE FLIGHT from "+bookingService.getNameServer()+" to "+ arr1[1]+" on " + arr1[2] + " at " + arr1[3]+" by manager: "+recordID);
-				return "0";
+//				bookingService.getLogger().info("FAILED TO CREATE FLIGHT from "+bookingService.getNameServer()+" to "+ arr2[1]+" on " + arr2[2] + " at " + arr2[3]+" by manager: "+recordID);
+				return "false";
 			}
 		}else if(operation=='1'){
+//		}else if(operation.equalsIgnoreCase("editFlight")){	
 			return Integer.toString(bookingService.editFlight(recordID, arr1[1], arr1[2], arr1[3], arr2[0], arr2[1], arr2[2], arr2[3], arr2[4]));
+//			return Integer.toString(bookingService.editFlight(recordID, arr2[1], arr2[2], arr2[3], arr2[0], arr2[1], arr2[2], arr2[3], arr2[4]));
 		}else if(operation=='2'){
+//		}else if(operation.equalsIgnoreCase("deleteFlight")){
 			return Integer.toString(bookingService.deleteFlight(recordID, arr1[1], arr1[2], arr1[3]));
+//			return Integer.toString(bookingService.deleteFlight(recordID, arr2[1], arr2[2], arr2[3]));
 		}else if(operation=='3'){
+//		}else if(operation.equalsIgnoreCase("showAllFlights")){
 			return bookingService.showAllFlight();
 		}
-		return "0";	
+		return "false";	
 	}
 
 	@Override
 	public String transferReservation(String passengerID, String currentCity, String otherCity) {
 		// TODO Auto-generated method stub
+		String[] arr3 = passengerID.split(":");
+		//arr3[0] server
+		//arr3[1] manager id
+		passengerID = arr3[2];
 		String message = "";
 		Passenger p = bookingService.findPassengerInPassengerHMap(passengerID);
 	//	String[] pid = bookingService.findPassengerInPassengerHMap(passengerID).split(";");
@@ -215,7 +240,7 @@ public class BookingImp extends BookingPOA {
 											//System.err.println("passenger was deleted from passenger hash map");
 										}
 									}
-									return "transfer successful";
+									return "true";
 								}
 								return message;
 							}
@@ -229,14 +254,14 @@ public class BookingImp extends BookingPOA {
 					e.printStackTrace();
 				}
 			}else{
-				return "noflight";
+				return "false";
 			}
 			}//asdasdasdasdasda
 		//}
 		}else{
-			return "nosuchrecord";
+			return "false";
 		}
-		return "nosuchrecord";
+		return "false";
 	}
 
 }

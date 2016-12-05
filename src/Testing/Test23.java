@@ -1,27 +1,15 @@
 package Testing;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-
-import org.junit.Test;
-
-import DFRS.Booking;
-import DFRS.BookingHelper;
-import DFRS.Passenger;
 
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-
-
-import com.mycila.junit.concurrent.Concurrency;
-import com.mycila.junit.concurrent.ConcurrentJunitRunner;
-
-
+import org.junit.Test;
 import org.omg.CORBA.ORB;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.CosNaming.NamingContextExt;
@@ -29,9 +17,13 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.CosNaming.NamingContextPackage.CannotProceed;
 import org.omg.CosNaming.NamingContextPackage.NotFound;
 
+import DFRS.Booking;
+import DFRS.BookingHelper;
+import DFRS.Passenger;
 
-@RunWith(ConcurrentJunitRunner.class)
-@Concurrency(value = 3)
+
+//@RunWith(ConcurrentJunitRunner.class)
+//@Concurrency(value = 3)
 public class Test23 {
 	
 	String DATE = "03";

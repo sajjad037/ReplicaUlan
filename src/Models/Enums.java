@@ -36,7 +36,7 @@ public class Enums {
 	}
 	
 	public enum Operations {
-		bookFlight, getBookedFlightCount, editFlightRecord, transferReservation, heatBeat
+		bookFlight, getBookedFlightCount, editFlightRecord, transferReservation, heatBeat, softwareFailure, hardwareFailure
 	}
 	
 	public enum UDPMessageType {

@@ -19,6 +19,7 @@ import Models.Enums;
 import Models.UDPMessage;
 import ReliableUDP.Reciever;
 import ReliableUDP.Sender;
+
 import StaticContent.*;
 import Utilities.CLogger;
 import Utilities.Serializer;
@@ -33,7 +34,6 @@ import Utilities.Serializer;
 
 public class ReplicaListner implements Runnable {
 	private CLogger clogger;
-	private DatagramSocket serverSocket;
 	private Thread t = null;
 	private boolean continueUDP = true;
 	public static long sequencerNumber = 0;
@@ -57,27 +57,47 @@ public class ReplicaListner implements Runnable {
 			System.out.println(msg);
 			clogger.log(msg);
 			recSocket = new DatagramSocket(this.port);
-			System.out.println("Replica Listner Port: "+port);
-			
+			System.out.println("Replica Listner Port: " + port);
+			byte[] receiveData = new byte[StaticContent.UDP_REQUEST_BUFFER_SIZE];
+
 			while (continueUDP) {
 
 				// Reciever r = new Reciever(port,
 				// StaticContent.SEQUENCER_ACK_PORT_FOR_REPLICA_ULAN);
+				// Reciever r = new Reciever(recSocket);
+				// UDPMessage udpMessage = r.getData();
 
-				Reciever r = new Reciever(recSocket);
-				UDPMessage udpMessage = r.getData();
+				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+				recSocket.receive(receivePacket);
 
-				if(!udpMessage.getOpernation().equals(Enums.Operations.heatBeat))
-				{
+				byte[] message = Arrays.copyOf(receivePacket.getData(), receivePacket.getLength());
+				UDPMessage udpMessage = Serializer.deserialize(message);
+				UDPMessage ackMessage = null;
+				// Clear received buffer
+				receiveData = new byte[StaticContent.UDP_REQUEST_BUFFER_SIZE];
+				boolean receivedStatus = false;
+
+				if (!udpMessage.getOpernation().equals(Enums.Operations.heatBeat)) {
 					long tempSeq = sequencerNumber + 1;
 					if (tempSeq != udpMessage.getSequencerNumber()) {
 						continue;
+					} else {
+						// Increment the sequence number.
+						sequencerNumber++;
+
+						// Reply the caller with ack.
+						ackMessage = new UDPMessage(Enums.UDPSender.ReplicaUlan, udpMessage.getSequencerNumber(),
+								udpMessage.getServerName(), udpMessage.getOpernation(), Enums.UDPMessageType.Reply);
+						ackMessage.setStatus(true);
+						byte[] sendData = Serializer.serialize(ackMessage);
+						DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+								receivePacket.getAddress(), receivePacket.getPort());
+						recSocket.send(sendPacket);
+
+						// Clear Send buffer
+						sendData = new byte[StaticContent.UDP_REQUEST_BUFFER_SIZE];
 					}
 				}
-				
-
-				// Increment the sequence number.
-				sequencerNumber++;
 
 				UDPMessage replyMessage = null;
 
@@ -111,16 +131,45 @@ public class ReplicaListner implements Runnable {
 
 					case getBookedFlightCount:
 
-						res = obj.getBookedFlightCount(udpMessage.getParamters().get("recordType"));
-
+						res = obj.getBookedFlightCount(udpMessage.getManagerID()+":"+udpMessage.getParamters().get("recordType"));
+						
 						replyMessage.setReplyMsg(res);
 
 						break;
 
 					case editFlightRecord:
-
-						res = obj.editFlightRecord(udpMessage.getParamters().get("recordID"),
-								udpMessage.getParamters().get("fieldName"), udpMessage.getParamters().get("newValue"));
+						String fieldName = "";
+						String newValue = "";
+						if(udpMessage.getParamters().get("fieldName").equalsIgnoreCase("createFlight")){
+							String[] arr = udpMessage.getParamters().get("newValue").split(":");
+							fieldName = '0'+":"+arr[5]+":"+arr[3]+":"+arr[4];
+							newValue = "";
+						} else if(udpMessage.getParamters().get("fieldName").equalsIgnoreCase("deleteFlight")){
+							String[] arr2 = udpMessage.getReplyMsg().split(":");
+							fieldName = '2'+":"+arr2[0]+":"+arr2[1]+":"+arr2[2];
+						} else {
+							String fieldName0 = udpMessage.getParamters().get("fieldName");
+							String newValue0 = udpMessage.getParamters().get("newValue");
+							String[] arr2 = udpMessage.getReplyMsg().split(":");
+							fieldName = '1'+":"+arr2[0]+":"+arr2[1]+":"+arr2[2];
+							
+							if(fieldName0.equalsIgnoreCase("seatsInFirstClass")){
+								newValue = arr2[1]+":"+arr2[2]+":"+newValue0+":"+"3"+":"+"3";
+							}else if(fieldName0.equalsIgnoreCase("seatsInBusinessClass")){
+								newValue = arr2[1]+":"+arr2[2]+":"+"3"+":"+newValue0+":"+"3";
+							}else if(fieldName0.equalsIgnoreCase("seatsInEconomyClass")){
+								newValue = arr2[1]+":"+arr2[2]+":"+"3"+":"+newValue0+":"+"3";
+							}else if(fieldName0.equalsIgnoreCase("flightTime")){
+								newValue = arr2[1]+":"+newValue0+":"+"3"+":"+"3"+":"+"3";
+							}else if(fieldName0.equalsIgnoreCase("flightDate")){
+								newValue = newValue0+":"+arr2[2]+":"+"3"+":"+"3"+":"+"3";
+							}
+						}
+						res = obj.editFlightRecord(udpMessage.getManagerID(), fieldName, newValue);
+						
+				//		res = obj.editFlightRecord(udpMessage.getParamters().get("recordID"),
+				//		udpMessage.getParamters().get("fieldName"), udpMessage.getParamters().get("newValue"));
+						
 						replyMessage.setReplyMsg(res);
 						break;
 
@@ -143,12 +192,12 @@ public class ReplicaListner implements Runnable {
 							+ udpMessage.getServerName();
 					System.out.println(msg);
 					clogger.log(msg);
-					
+
 					fromSequencer = false;
 					replyMessage = new UDPMessage(this.machineName, udpMessage.getSequencerNumber(),
 							udpMessage.getServerName(), udpMessage.getOpernation(), Enums.UDPMessageType.Reply);
 
-					replyMessage.setReplyMsg("true");
+					replyMessage.setStatus(true);
 
 					break;
 
@@ -168,28 +217,42 @@ public class ReplicaListner implements Runnable {
 
 				if (fromSequencer) {
 					DatagramSocket senderSocket = new DatagramSocket();
-					Sender s = new Sender(StaticContent.FRONT_END_IP_ADDRESS, udpMessage.getFrontEndPort(), false,
-							senderSocket);
-					if (s.send(replyMessage)) {
-						// release Port
-						if (senderSocket != null && !senderSocket.isClosed())
-							senderSocket.close();
-					}
+
+					
+					byte[] sendData = Serializer.serialize(replyMessage);
+					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+							InetAddress.getByName(StaticContent.FRONT_END_IP_ADDRESS), udpMessage.getFrontEndPort());
+					senderSocket.send(sendPacket);
+
+					// Clear Send buffer
+					sendData = new byte[StaticContent.UDP_REQUEST_BUFFER_SIZE];
+
+					senderSocket.close();
+
+					// Sender s = new Sender(StaticContent.FRONT_END_IP_ADDRESS,
+					// udpMessage.getFrontEndPort(), false,
+					// senderSocket);
+					// if (s.send(replyMessage)) {
+					// // release Port
+					// if (senderSocket != null && !senderSocket.isClosed())
+					// senderSocket.close();
+					// }
 
 				} else {
 					// heartbeat reply is already sent by the protocol. no need
 					// to reply again.
+					System.out.print("Replica: Replying HeartBeat.");
+					DatagramSocket senderSocket = new DatagramSocket();
 
-					//
-					// DatagramSocket senderSocket= new DatagramSocket();
-					// Sender s = new Sender(StaticContent.RM3_IP_ADDRESS,
-					// StaticContent.RM3_lISTENING_PORT, false, senderSocket);
-					// if(s.send(replyMessage))
-					// {
-					// //release Port
-					// if(senderSocket != null && !senderSocket.isClosed())
-					// senderSocket.close();
-					// }
+					byte[] sendData = Serializer.serialize(replyMessage);
+					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
+							receivePacket.getAddress(), receivePacket.getPort());
+					senderSocket.send(sendPacket);
+
+					// Clear Send buffer
+					sendData = new byte[StaticContent.UDP_REQUEST_BUFFER_SIZE];
+
+					senderSocket.close();
 
 				}
 

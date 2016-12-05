@@ -16,6 +16,7 @@ public class BookingImpService {
 	private HashMap<String, List<Flight>> hmapFlights; //flights hash map
 	private String nameServer = "";
 	private String nameServerABR = "";
+	private int idCur = 0;
 	
 	
 	
@@ -214,7 +215,7 @@ public class BookingImpService {
 	 * @return unique passenger record ID
 	 */
 	public long addPassengerRecord(String firstName, String lastName, String address, String phone, String destination, String classFlight, String date) {
-			long id = System.currentTimeMillis();
+			long id = idCur;
 			String r_id = Long.toString(id);
 			Passenger p = new Passenger(firstName, lastName, address, phone, nameServer, destination, classFlight, date, r_id);
 			if (hmap.get(p.getLastName().charAt(0)) == null) {
@@ -228,6 +229,7 @@ public class BookingImpService {
 			}
 			logger.info("PASSENGER BOOKED FLIGHT Record: "+r_id+" "+p.getFirstName()+" "+p.getLastName()+" "+p.getDestination()+" "+p.getDateFlight()+" "+p.getAddress()+" "+p.getClassFlight()+" "+p.getPhone());
 			//System.out.println("Record: "+r_id+" "+p.getFirstName()+" "+p.getLastName()+" "+p.getDestination()+" "+p.getDateFlight()+" "+p.getAddress()+" "+p.getClassFlight()+" "+p.getPhone()+" was added to Passenger Record DataBase.");
+			idCur++;
 			return id;
 		}
 	
@@ -252,7 +254,7 @@ public class BookingImpService {
 	       }
 	    }
 	    //System.out.println("HERE "+serverNameABR+";"+count+";");
-	    return nameServerABR+";"+count+";";
+	    return nameServerABR+" "+count+",";
 	}
 	
 	/**

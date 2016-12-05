@@ -3,29 +3,26 @@ package Replica;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.net.DatagramSocket;
 import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Timer;
 import java.util.logging.Logger;
-
-import org.omg.CORBA.ORBPackage.InvalidName;
-import org.omg.CosNaming.NamingContextPackage.CannotProceed;
-import org.omg.CosNaming.NamingContextPackage.NotFound;
-import org.omg.PortableServer.POAManagerPackage.AdapterInactive;
-import org.omg.PortableServer.POAPackage.ObjectNotActive;
-import org.omg.PortableServer.POAPackage.ServantAlreadyActive;
-import org.omg.PortableServer.POAPackage.ServantNotActive;
-import org.omg.PortableServer.POAPackage.WrongPolicy;
 
 import DFRS.BookingImp;
 import DFRS.Server;
 import Models.Enums;
 import Models.UDPMessage;
+import ReliableUDP.Reciever;
+import ReliableUDP.Sender;
+import ReplicaManager.RMHeartBeat;
+import ReplicaManager.ReplicaManagerListner;
+
 import StaticContent.StaticContent;
 import Utilities.CLogger;
-
-//FLIGHTSERVER is my Server Implementation class of CORBA.
-//CHANGE IT AS PER YOUR CLASS.
 
 public class ReplicaMain {
 	private static CLogger clogger;
@@ -58,8 +55,8 @@ public class ReplicaMain {
 			System.out.println(msg);
 
 			// Start UDP Server
-			ReplicaListner server = new ReplicaListner(clogger, StaticContent.REPLICA_UMER_lISTENING_PORT,
-					Enums.UDPSender.ReplicaUmer);
+			ReplicaListner server = new ReplicaListner(clogger, StaticContent.REPLICA_ULAN_lISTENING_PORT,
+					Enums.UDPSender.ReplicaUlan);
 			server.start();
 
 			createServerObjects(corbaArgs, restoreBackup);
@@ -73,8 +70,17 @@ public class ReplicaMain {
 			System.out.println("Sequencer Exception: " + e.getMessage());
 		}
 	}
+	
+	public void shutDownReplica()
+	{
+		for(Entry<String, BookingImp> entry : servers.entrySet())
+		{
+			BookingImp temp = entry.getValue();
+			temp.shutDownServer();
+		}
+	}
 
-	private void createServerObjects(String[] orbArgs, boolean restoreBackup) throws AdapterInactive, InvalidName, ObjectNotActive, WrongPolicy, ServantAlreadyActive, ClassNotFoundException, ServantNotActive, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound, CannotProceed {
+	private void createServerObjects(String[] orbArgs, boolean restoreBackup) {
 		Server montreal = new Server();
 		Server washington = new Server();
 		Server newDelhi = new Server();
@@ -106,9 +112,8 @@ public class ReplicaMain {
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
-					} catch (ClassNotFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					} catch(ClassNotFoundException e){
+						
 					}
 					
 				}
@@ -128,7 +133,7 @@ public class ReplicaMain {
 	private void restoreLogFile(UDPMessage udpMessage)
 	{
 	
-			String msg = Enums.UDPSender.ReplicaUmer + " Restore in process!";
+			String msg = Enums.UDPSender.ReplicaUlan + " Restore in process!";
 			UDPMessage replyMessage = null;
 			
 				switch (udpMessage.getSender()) {
@@ -139,7 +144,7 @@ public class ReplicaMain {
 					System.out.println(msg);
 					clogger.log(msg);
 					
-					replyMessage = new UDPMessage(Enums.UDPSender.ReplicaUmer, udpMessage.getSequencerNumber(),
+					replyMessage = new UDPMessage(Enums.UDPSender.ReplicaUlan, udpMessage.getSequencerNumber(),
 							udpMessage.getServerName(), udpMessage.getOpernation(), Enums.UDPMessageType.Reply);
 
 					BookingImp obj = ReplicaMain.servers.get(udpMessage.getServerName().toString());

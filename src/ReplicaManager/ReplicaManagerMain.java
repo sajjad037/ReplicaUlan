@@ -34,8 +34,8 @@ public class ReplicaManagerMain {
 			System.out.println(msg);
 
 			// Start UDP Server
-			ReplicaManagerListner server = new ReplicaManagerListner(clogger, StaticContent.RM3_lISTENING_PORT,
-					Enums.UDPSender.ReplicaUmer);
+			ReplicaManagerListner server = new ReplicaManagerListner(clogger, StaticContent.RM1_lISTENING_PORT,
+					Enums.UDPSender.ReplicaUlan);
 			server.start();
 			// server.executeTestMessage();
 			//server.join();
@@ -45,7 +45,7 @@ public class ReplicaManagerMain {
 
 			RMHeartBeat heatBeat = new RMHeartBeat();
 			Timer timer = new Timer();
-			timer.schedule(heatBeat, 0, 15000);
+			timer.schedule(heatBeat, 0, 15000000);
 
 		} catch (Exception e) {
 			System.out.println("Sequencer Exception: " + e.getMessage());
@@ -54,6 +54,7 @@ public class ReplicaManagerMain {
 
 	public static void restartReplica() {
 		if (isReplicaAlive == false) {
+			myReplicaInstance.shutDownReplica();
 			myReplicaInstance = null;
 			myReplicaInstance = new ReplicaMain(true);
 		}
