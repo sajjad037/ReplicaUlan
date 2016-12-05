@@ -43,6 +43,7 @@ public class BookingImp extends BookingPOA {
 	public String bookFlight(String firstName, String lastName, String address, String phone, String destination, String date, String classFlight) {
 		// TODO Auto-generated method stub
 		//find value by key in hash map
+		System.err.println("I am HERE!");
 		List<Flight> temp = bookingService.getHashMapFlight().get(destination + date);
 		if (temp != null) {
 			synchronized(temp){

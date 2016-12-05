@@ -35,24 +35,30 @@ import org.omg.PortableServer.POAPackage.ServantAlreadyActive;
 import org.omg.PortableServer.POAPackage.ServantNotActive;
 import org.omg.PortableServer.POAPackage.WrongPolicy;
 
+
 /**
  * @author ulanbaitassov
  * The Remote Server application which responds to Client-Manager request remotely 
  */
-public class Server{
+public class Server implements Runnable{
 	private String nameServer = "";
 	private String nameServerABR = ""; //server name in abbreviation
 	private int portUDP = 0; //port number for UDP connection
-	private static boolean serverON = false;
-	private static Logger logger;
-	private static BookingImpService bService;
-	private static BookingImp bookingObject;
+	private  boolean serverON = false;
+	private  Logger logger;
+	private  BookingImpService bService;
+	private  BookingImp bookingObject;
+	private String s_name;
+	private String a;
+	private String[] args;
 	
 	/**
 	 * Default Constructor
 	 * @throws RemoteException occurs remote object can not be created
 	 */
-	public Server(){}
+	public Server(){
+		System.out.println("server object is created.");
+	}
 	
 	/**
 	 * Get method which returns server name
@@ -103,6 +109,7 @@ public class Server{
 			fileHandler = new FileHandler("log"+nameServer+".txt",true);
 			fileHandler.setFormatter(new LogFormatter());
 			logger.addHandler(fileHandler);
+			System.out.println("server name is: "+new_sname);
 		} catch (SecurityException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -125,10 +132,24 @@ public class Server{
 	 * @throws NotFound 
 	 */
 	@SuppressWarnings("unchecked")
-	public static void main(String[] args) throws AdapterInactive, InvalidName, ObjectNotActive, WrongPolicy, ServantAlreadyActive, ClassNotFoundException, ServantNotActive, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound, CannotProceed{				
-		
+	public void startServer(final String s_name, String a, final String[] args){				
+		this.s_name = s_name;
+		this.a = a;
+		this.args = args;
+	//	System.out.println("starting thread: "+s_name);
+		this.run();
+	//	System.out.println("after thread"+s_name);
+	}
+	
+
+	public BookingImp getBookingObj(){
+		return bookingObject;
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
 		try {
-			final Server server = new Server();
 			serverON = true;
 			//write server server name, RMI port and UDP port in common repository 
 				File file3=new File("common.repository");
@@ -137,9 +158,10 @@ public class Server{
 					System.exit(0);
 				}
 			//input server information	
-			Scanner scanner = new Scanner(System.in);
-			System.out.println("Enter server name");
-			String serverN = scanner.nextLine();
+		//	Scanner scanner = new Scanner(System.in);
+		//	System.out.println("Enter server name");
+		//	String serverN = scanner.nextLine();
+			String serverN = s_name;
 			Scanner sc = new Scanner(new File("common.repository"));
 			String[] arr = null;
 			while(sc.hasNext()){
@@ -151,26 +173,29 @@ public class Server{
 			}
 			sc.close();
 			String serverNABR = arr[2];
-			server.setServerName(serverN, serverNABR);
-			server.setPortUDP(Integer.parseInt(arr[1]));
-			final DatagramSocket socketUDP = new DatagramSocket(server.getPortUDP());
-			scanner.close();
+			this.setServerName(serverN, serverNABR);
+			this.setPortUDP(Integer.parseInt(arr[1]));
+			final DatagramSocket socketUDP = new DatagramSocket(this.getPortUDP());
+		//	scanner.close();
 			//BOOKING IMPLEMENTATION SERVICE
-			bService = new BookingImpService(server.getNameServer(), server.getNameServerABR());
+			bService = new BookingImpService(this.getNameServer(), this.getNameServerABR());
 			//CORBA code
-			ORB orb = ORB.init(args, null);
+			final ORB orb = ORB.init(args, null);
 			POA rootPOA = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
 			rootPOA.the_POAManager().activate();
 			bookingObject = new BookingImp(bService);
-			server.bService.setLogger(logger);
+			this.bService.setLogger(logger);
 			bookingObject.setORB(orb);
 			org.omg.CORBA.Object ref = rootPOA.servant_to_reference(bookingObject);
 			Booking href = BookingHelper.narrow(ref);
 			org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService");
 			NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
-			NameComponent path[] = ncRef.to_name(server.getNameServer());
+			NameComponent path[] = ncRef.to_name(this.getNameServer());
 			ncRef.rebind(path, href);
 			//UDP thread, make server listen to UDP datagrams by running it forever
+			
+			final Server tServer = this;
+			
 			Thread t2 = new Thread(new Runnable(){
 				@Override
 				public void run(){
@@ -188,7 +213,7 @@ public class Server{
 								//System.out.println("UDP REQUEST is received from server: "+arr[0]+" message: "+message);
 								//System.out.println(message);
 								//receive UDP request message and get number of passengers who booked flight on this server
-								message = server.bService.getBookedCountFlight2(arr[2]);
+								message = tServer.bService.getBookedCountFlight2(arr[2]);
 								DatagramPacket replyPacket = new DatagramPacket(message.getBytes(), message.length(), requestPacket.getAddress(), requestPacket.getPort());
 								//send number of passengers to requesting server
 								socketUDP.send(replyPacket);
@@ -196,7 +221,7 @@ public class Server{
 								//System.out.println("UDP REPLY sent back to server: "+arr[0]+" message: "+message);
 							}else if(arr[0].equalsIgnoreCase("book")){
 								//System.out.println("in udp booking = "+message);
-								message = server.bookingObject.bookFlight(arr[3], arr[4], arr[6], arr[7], arr[1], arr[2], arr[5]);
+								message = tServer.bookingObject.bookFlight(arr[3], arr[4], arr[6], arr[7], arr[1], arr[2], arr[5]);
 								//System.out.println("xxx = "+message);
 								DatagramPacket replyPacket = new DatagramPacket(message.getBytes(), message.length(), requestPacket.getAddress(), requestPacket.getPort());
 								//send number of passengers to requesting server
@@ -211,6 +236,7 @@ public class Server{
 			});
 			t2.start();
 			//start parallel thread which saves the passenger and flight hash maps every some time
+			 
 			Thread t1 = new Thread(new Runnable(){
 				@Override
 				public void run(){
@@ -218,10 +244,10 @@ public class Server{
 					//save passenger hash map every 9 seconds on hard disk
 						if(System.currentTimeMillis()%9000==0){
 							try{
-								File fileOne=new File(server.getNameServer()+"Pass.ser");
+								File fileOne=new File(tServer.getNameServer()+"Pass.ser");
 						    	FileOutputStream fos=new FileOutputStream(fileOne);
 						    	ObjectOutputStream oos=new ObjectOutputStream(fos);
-						    	oos.writeObject(server.bService.getHashMap());
+						    	oos.writeObject(tServer.bService.getHashMap());
 						    	oos.flush();
 						    	oos.close();
 						    	fos.close();
@@ -234,10 +260,10 @@ public class Server{
 						//save flight hash map every 10 seconds on hard disk
 						if(System.currentTimeMillis()%10000==0){
 							try{
-								File fileOne=new File(server.getNameServer()+"Flight.ser");
+								File fileOne=new File(tServer.getNameServer()+"Flight.ser");
 						    	FileOutputStream fos=new FileOutputStream(fileOne);
 						    	ObjectOutputStream oos=new ObjectOutputStream(fos);
-						    	oos.writeObject(server.bService.getHashMapFlight());
+						    	oos.writeObject(tServer.bService.getHashMapFlight());
 						    	oos.flush();
 						    	oos.close();
 						    	fos.close();
@@ -252,42 +278,75 @@ public class Server{
 			});
 			t1.start();
 			//SAVE or CREATE HASHMAPS flight AND passenger
-			File file=new File(server.getNameServer()+"Pass.ser");
+			File file=new File(this.getNameServer()+"Pass.ser");
 			if(file.exists()){
 				FileInputStream fis=new FileInputStream(file);
 			    ObjectInputStream ois=new ObjectInputStream(fis);
-			    server.bService.setHashMap((HashMap<Character,List<Passenger>>)ois.readObject());
+			   	this.bService.setHashMap((HashMap<Character,List<Passenger>>)ois.readObject());
+				
 			    ois.close();
 			    fis.close();
 			    System.out.println("Passenger record hash map was successfully loaded from file.");
 			}else{
-				server.bService.setHashMap(new HashMap<Character,List<Passenger>>());
+				this.bService.setHashMap(new HashMap<Character,List<Passenger>>());
 				System.out.println("Passenger record hash map was successfully created.");
 			}
 			//load flight hash map from file if exists or create new
-			File file2=new File(server.getNameServer()+"Flight.ser");
+			File file2=new File(this.getNameServer()+"Flight.ser");
 			if(file2.exists()){
 				FileInputStream fis=new FileInputStream(file2);
 			    ObjectInputStream ois=new ObjectInputStream(fis);
-			    server.bService.setHashMapFlight((HashMap<String, List<Flight>>)ois.readObject());
+			    this.bService.setHashMapFlight((HashMap<String, List<Flight>>)ois.readObject());
 			    ois.close();
 			    fis.close();
 			    System.out.println("Flight hash map was successfully loaded from file.");
 			}else{
-				server.bService.setHashMapFlight(new HashMap<String, List<Flight>>());
+				this.bService.setHashMapFlight(new HashMap<String, List<Flight>>());
 				System.out.println("Flight hash map was successfully created.");
 			}
 			//INFORM that SERVER has started
-			System.out.println("UDP Port number: "+server.getPortUDP());
-			System.out.println("Server "+server.getNameServer()+" is up and running...");
-			logger.info("SERVER IS UP ... server name: "+server.getNameServer()+" server abr name: "+server.getNameServerABR()+" UDP Port number: "+server.getPortUDP());
+			System.out.println("UDP Port number: "+this.getPortUDP());
+			System.out.println("Server "+this.getNameServer()+" is up and running...");
+			logger.info("SERVER IS UP ... server name: "+this.getNameServer()+" server abr name: "+this.getNameServerABR()+" UDP Port number: "+this.getPortUDP());
 			//CORBA run
-			orb.run();			
+			
+			Thread orbRunThread = new Thread(new Runnable() {
+				public void run() {
+				orb.run();
+				}
+			});
+			orbRunThread.start();
+			
 		} catch(IOException e){
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidName e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ServantNotActive e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (WrongPolicy e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (org.omg.CosNaming.NamingContextPackage.InvalidName e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (AdapterInactive e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotFound e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (CannotProceed e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}finally{
 			//logger.info("SERVER SHUT DOWN...");
 		}	
 	}
+	
 }
 
