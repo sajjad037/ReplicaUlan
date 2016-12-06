@@ -16,7 +16,8 @@ public class BookingImpService {
 	private HashMap<String, List<Flight>> hmapFlights; //flights hash map
 	private String nameServer = "";
 	private String nameServerABR = "";
-	private int idCur = 0;
+	private int idCur = 1;
+	public int countFlight = 1;
 	
 	
 	

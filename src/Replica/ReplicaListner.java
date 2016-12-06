@@ -126,7 +126,7 @@ public class ReplicaListner implements Runnable {
 								udpMessage.getParamters().get("date"), udpMessage.getParamters().get("classFlight"));
 
 						replyMessage.setReplyMsg(res);
-
+						System.out.println(this.machineName+" replica bookFlight REply "+res);
 						break;
 
 					case getBookedFlightCount:
@@ -134,7 +134,7 @@ public class ReplicaListner implements Runnable {
 						res = obj.getBookedFlightCount(udpMessage.getManagerID()+":"+udpMessage.getParamters().get("recordType"));
 						
 						replyMessage.setReplyMsg(res);
-
+						System.out.println(this.machineName+" replica getBookedFlightCount REply "+res);
 						break;
 
 					case editFlightRecord:
@@ -169,8 +169,9 @@ public class ReplicaListner implements Runnable {
 						
 				//		res = obj.editFlightRecord(udpMessage.getParamters().get("recordID"),
 				//		udpMessage.getParamters().get("fieldName"), udpMessage.getParamters().get("newValue"));
-						System.out.println(res);
+						//System.out.println(res);
 						replyMessage.setReplyMsg(res);
+						System.out.println(this.machineName+" replica editFlightRecord REply "+res);
 						break;
 
 					case transferReservation:
@@ -179,6 +180,7 @@ public class ReplicaListner implements Runnable {
 								udpMessage.getParamters().get("currentCity"),
 								udpMessage.getParamters().get("otherCity"));
 						replyMessage.setReplyMsg(res);
+						System.out.println(this.machineName+" replica transferReservation REply "+res);
 						break;
 
 					}

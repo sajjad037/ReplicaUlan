@@ -159,7 +159,7 @@ public class BookingImp extends BookingPOA {
 //		if(operation.equalsIgnoreCase("createFlight")){	
 			if(bookingService.createNewFlight(recordID, arr1[1], arr1[2], arr1[3])){
 //			if(bookingService.createNewFlight(recordID, newDestination, newDate, newTime)){
-				return "true";
+				return "true:"+bookingService.countFlight++;
 			}else{
 				bookingService.getLogger().info("FAILED TO CREATE FLIGHT from "+bookingService.getNameServer()+" to "+ arr1[1]+" on " + arr1[2] + " at " + arr1[3]+" by manager: "+recordID);
 //				bookingService.getLogger().info("FAILED TO CREATE FLIGHT from "+bookingService.getNameServer()+" to "+ arr2[1]+" on " + arr2[2] + " at " + arr2[3]+" by manager: "+recordID);
