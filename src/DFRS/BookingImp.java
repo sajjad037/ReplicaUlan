@@ -82,6 +82,7 @@ public class BookingImp extends BookingPOA {
 
 	@Override
 	public String getBookedFlightCount(String recordType) {
+		System.err.println("HERERERE: "+ recordType);
 		// TODO Auto-generated method stub
 		try {
 			String[] arr2 = recordType.split(":");
